@@ -1,0 +1,225 @@
+{
+  "name": "tell-me",
+  "displayName": "Tell-me, Learning Assistant",
+  "description": "Tells and teaches users coding concepts based on compiler and language diagnostics currently for C and C++",
+  "version": "1.0.1",
+  "publisher": "Tell-me",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Googoochadwick/tell-me"
+  },
+  "type": "module",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Education",
+    "Other"
+  ],
+  "icon": "media/img.jpg",
+
+
+  "keywords": [
+    "c",
+    "c++",
+    "cpp",
+    "compiler",
+    "education",
+    "learning",
+    "ai",
+    "gemini",
+    "diagnostics",
+    "debugging",
+    "student",
+    "tutorial"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "diagnosticsContainer",
+          "title": "Tell-me",
+          "icon": "media/placeH.svg"
+        }
+      ]
+    },
+    "views": {
+      "diagnosticsContainer": [
+        {
+          "icon": "media/placeH.svg",
+          "id": "diagnosticsView",
+          "name": "Active File Diagnostics",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Tell-me",
+      "properties": {
+        "geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Google Gemini API key for AI-powered diagnostics",
+          "markdownDescription": "Enter your Google Gemini API key. Get one from [Google AI Studio](https://aistudio.google.com/app/apikey)"
+        },
+        "tellMe.model": {
+          "type": "string",
+          "enum": ["gemini-2.5-flash", "gemini-2.5-pro"],
+          "default": "gemini-2.5-flash",
+          "description": "Gemini model to use (flash=faster, pro=better quality)",
+          "enumDescriptions": [
+            "Fast responses with good quality",
+            "Best quality responses but slower and more expensive"
+          ]
+        },
+        "tellMe.temperature": {
+          "type": "number",
+          "default": 0.8,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Response creativity and randomness (0.0=deterministic/factual, 1.0=balanced, 2.0=highly creative)"
+        },
+        "tellMe.maxTokens": {
+          "type": "number",
+          "enum": [512, 1024, 2048, 4096, 8192],
+          "default": 2048,
+          "description": "Maximum response length in tokens (controls answer depth)",
+          "enumDescriptions": [
+            "Brief responses (~1-2 paragraphs)",
+            "Short responses (~2-3 paragraphs)",
+            "Medium responses (~4-5 paragraphs) - Recommended",
+            "Long responses (~6-8 paragraphs)",
+            "Very detailed responses (full explanations)"
+          ]
+        },
+        "tellMe.responseDepth": {
+          "type": "string",
+          "enum": ["quick-fix", "standard", "comprehensive", "tutorial"],
+          "default": "standard",
+          "description": "Depth of explanation and teaching",
+          "enumDescriptions": [
+            "Just the fix - minimal explanation",
+            "Fix + brief explanation (recommended)",
+            "Fix + detailed explanation + examples",
+            "Complete tutorial with theory, examples, and best practices"
+          ]
+        },
+        "tellMe.responseStyle": {
+          "type": "string",
+          "enum": ["concise", "balanced", "detailed"],
+          "default": "balanced",
+          "description": "Teaching style (concise=brief, balanced=default, detailed=thorough)"
+        },
+        "tellMe.tone": {
+          "type": "string",
+          "enum": ["professional", "friendly", "casual", "academic"],
+          "default": "friendly",
+          "description": "Tone of the AI responses",
+          "enumDescriptions": [
+            "Formal and technical language",
+            "Approachable and encouraging (recommended for learners)",
+            "Relaxed and conversational",
+            "Scholarly with citations and formal terminology"
+          ]
+        },
+        "tellMe.responseFormat": {
+          "type": "string",
+          "enum": ["markdown", "plain-text", "structured"],
+          "default": "markdown",
+          "description": "Output format for AI responses",
+          "enumDescriptions": [
+            "Rich markdown with formatting, code blocks, and links",
+            "Simple text without formatting",
+            "Organized with clear sections and bullet points"
+          ]
+        },
+        "tellMe.includeExamples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include code examples in explanations"
+        },
+        "tellMe.includeBestPractices": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include best practices and tips in responses"
+        },
+        "tellMe.showMetrics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show response time and token usage below AI output"
+        },
+        "tellMe.costWarningThreshold": {
+          "type": "number",
+          "default": 4096,
+          "description": "Warn when a single response exceeds this many tokens"
+        },
+        "tellMe.language": {
+          "type": "string",
+          "enum": ["en", "es", "fr", "de", "auto"],
+          "default": "en",
+          "description": "Preferred language for responses",
+          "enumDescriptions": [
+            "English",
+            "Spanish",
+            "French",
+            "German",
+            "Detect from VS Code settings"
+          ]
+        },
+        "tellMe.maxHistoryItems": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100,
+          "description": "Maximum number of conversation messages to keep in memory"
+        },
+        "tellMe.compilationTimeout": {
+          "type": "number",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 300,
+          "description": "Compilation timeout in seconds"
+        },
+        "tellMe.executionTimeout": {
+          "type": "number",
+          "default": 10,
+          "minimum": 5,
+          "maximum": 120,
+          "description": "Program execution timeout in seconds"
+        },
+        "tellMe.maxOutputSize": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "maximum": 50000,
+          "description": "Maximum characters to display from compilation/execution output"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.107.0",
+    "@vscode/l10n": "^0.0.18",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "@modelcontextprotocol/sdk": "^1.25.1"
+  }
+}
