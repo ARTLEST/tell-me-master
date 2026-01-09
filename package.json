@@ -52,9 +52,64 @@
           "id": "diagnosticsView",
           "name": "Active File Diagnostics",
           "type": "webview"
+        },
+        {
+          "id": "tellmeTags",
+          "name": "Tags & Progress",
+          "type": "tree"
         }
       ]
     },
+    "commands": [
+      {
+        "command": "tellme.tag.add",
+        "title": "Add Tag",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.tag.addToDiagnostic",
+        "title": "Tag Diagnostic",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.tag.showLocations",
+        "title": "Show Tag Locations",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.sync.connect",
+        "title": "Connect Google Sheets",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.sync.pushNow",
+        "title": "Sync to Google Sheets Now",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.stats.show",
+        "title": "Show Learning Statistics",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.data.export",
+        "title": "Export My Progress Data",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.data.delete",
+        "title": "Delete All Local Data",
+        "category": "Tell-me"      },
+      {
+        "command": "tellme.data.clearAll",
+        "title": "Clear All Extension Data",
+        "category": "Tell-me"
+      },
+      {
+        "command": "tellme.extension.resetToDefaults",
+        "title": "Reset Extension to Factory Defaults",
+        "category": "Tell-me"      }
+    ],
     "configuration": {
       "title": "Tell-me",
       "properties": {
@@ -195,6 +250,43 @@
           "minimum": 1000,
           "maximum": 50000,
           "description": "Maximum characters to display from compilation/execution output"
+        },
+        "tellMe.enableTags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable tagging for code analysis locations"
+        },
+        "tellMe.enableAutoTag": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic tag suggestions based on error patterns"
+        },
+        "tellMe.enableStats": {
+          "type": "boolean",
+          "default": true,
+          "description": "Track analysis statistics and learning progress"
+        },
+        "tellMe.googleSheets.clientId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Your Google OAuth 2.0 Client ID for Google Sheets sync. Get from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)"
+        },
+        "tellMe.googleSheets.enableSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable syncing progress data to Google Sheets"
+        },
+        "tellMe.googleSheets.autoSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically sync data at scheduled intervals"
+        },
+        "tellMe.googleSheets.syncIntervalMinutes": {
+          "type": "number",
+          "default": 60,
+          "minimum": 5,
+          "maximum": 1440,
+          "description": "Minutes between automatic syncs (if autoSync enabled)"
         }
       }
     }

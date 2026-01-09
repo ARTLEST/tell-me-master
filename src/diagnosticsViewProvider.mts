@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { GoogleGenAI } from "@google/genai";
 import { spawn } from "child_process";
 import * as path from "path";
+import { TagStore } from './storage/tagStore.mjs';
+import { StatsStore } from './storage/statsStore.mjs';
 
 export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
 
@@ -16,6 +18,9 @@ export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
     private lastTokenCount = 0;
     private cachedSettings: any = null;
     private settingsDrawerOpen = false;
+    private tagStore?: TagStore;
+    private statsStore?: StatsStore;
+    private sheetsSync?: any;
 
     constructor(private readonly _context: vscode.ExtensionContext) {
         // Invalidate settings cache when configuration changes
@@ -24,6 +29,12 @@ export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
                 this.cachedSettings = null;
             }
         });
+    }
+
+    setStores(tagStore: TagStore, statsStore: StatsStore, sheetsSync?: any): void {
+        this.tagStore = tagStore;
+        this.statsStore = statsStore;
+        this.sheetsSync = sheetsSync;
     }
 
     resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -55,8 +66,36 @@ export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
                 await this.updateSettings(message.settings);
             } else if (message.command === "showTroubleshooting") {
                 this.showTroubleshootingGuide();
+            } else if (message.command === "showFeaturesGuide") {
+                this.showFeaturesGuide();
             } else if (message.command === "resetSettings") {
                 await this.resetToDefaults();
+            } else if (message.command === "manageTagsCommand") {
+                await vscode.commands.executeCommand('tellme.tag.add');
+            } else if (message.command === "showStatsCommand") {
+                await vscode.commands.executeCommand('tellme.stats.show');
+            } else if (message.command === "syncSheetsCommand") {
+                // Smart sync: check connection first
+                if (!this.sheetsSync) {
+                    vscode.window.showWarningMessage('Sync service is still initializing. Please wait a moment.');
+                    return;
+                }
+                if (!this.sheetsSync.isConnected()) {
+                    const connect = await vscode.window.showInformationMessage(
+                        'Google Sheets is not connected. Would you like to connect now?',
+                        'Connect',
+                        'Cancel'
+                    );
+                    if (connect === 'Connect') {
+                        await vscode.commands.executeCommand('tellme.sync.connect');
+                    }
+                } else {
+                    await vscode.commands.executeCommand('tellme.sync.pushNow');
+                }
+            } else if (message.command === "exportDataCommand") {
+                await vscode.commands.executeCommand('tellme.data.export');
+            } else if (message.command === "clearDataCommand") {
+                await vscode.commands.executeCommand('tellme.data.clearAll');
             }
         });
 
@@ -222,6 +261,193 @@ export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
 4. Try restarting VS Code
 
 **Ready to try?** Save your file and click **'Compile & Run'** above!`;
+        this.update();
+    }
+
+    private showFeaturesGuide() {
+        this.geminiOutput = `# 📚 Welcome to Tell-me - Your C/C++ Learning Assistant!
+
+## 🌟 What is Tell-me?
+
+Tell-me is an **AI-powered learning tool** that helps you understand and fix your C/C++ code. Think of it as having a friendly tutor sitting next to you while you code!
+
+---
+
+## 🎯 Main Features (What Can It Do?)
+
+### 1. 🤖 **Smart Code Analysis** 
+**What it does:** Automatically finds errors in your code and explains them in simple terms.
+
+**How to use:**
+1. Write or open your C/C++ code
+2. Save the file (Ctrl+S)
+3. Click **"Compile & Run"** button
+4. Tell-me will compile your code, run it, and explain any problems
+
+**Example:** If you wrote \`cout << x\` but forgot to declare \`x\`, Tell-me will explain what "undeclared variable" means and show you how to fix it!
+
+---
+
+### 2. 🏷️ **Tag Your Errors** (Track Your Learning)
+**What it does:** Let you mark and categorize the types of errors you encounter, so you can see patterns in what you're struggling with.
+
+**How to use:**
+- **Quick Way:** Hover over any error in your code → Click the 💡 lightbulb → Select **"Add Tag to this Error"**
+- **Manual Way:** Click Menu (☰) → **"Manage Tags"** → Create custom tags like "pointers", "loops", "syntax"
+
+**Why it's useful:** You can track which topics need more practice!
+
+---
+
+### 3. 💬 **Ask Follow-up Questions**
+**What it does:** After getting an explanation, you can ask more questions to dig deeper.
+
+**How to use:**
+After running analysis, scroll down to see quick question buttons:
+- "Explain simpler" - If you didn't understand
+- "Show example" - Want to see a working example
+- "What's next?" - What should you learn next
+
+Or type your own question in the text box!
+
+**Example:** After Tell-me explains pointers, ask "Can you show me a real-world example of when I'd use pointers?"
+
+---
+
+### 4. 📊 **Track Your Progress**
+**What it does:** Keeps statistics on how many programs you've run, your success rate, and improvement over time.
+
+**How to use:**
+- Click Menu (☰) → **"Statistics"** to see your learning stats
+- See total programs analyzed, average time, and success rate
+
+---
+
+### 5. ☁️ **Sync to Google Sheets** (Optional)
+**What it does:** Saves your learning data to Google Sheets so you can visualize your progress over time with charts.
+
+**How to use:**
+1. Click Menu (☰) → **"Sync to Sheets"**
+2. Follow the steps to connect your Google account
+3. Your data gets saved to a spreadsheet automatically
+4. Use Looker Studio (free) to create beautiful progress charts!
+
+**Privacy Note:** Your actual code is never uploaded, only statistics like "had an error with loops" or "successfully compiled a program"
+
+---
+
+### 6. ⚙️ **Customize AI Responses**
+**What it does:** Control how Tell-me explains things to you.
+
+**How to use:**
+1. Click **"Settings"** button (or Menu → Settings)
+2. Choose your preferences:
+   - **Model:** Flash (faster) vs Pro (more detailed)
+   - **Style:** Concise (brief) vs Detailed (thorough)
+   - **Examples:** Turn on/off code examples
+   - **Best Practices:** Include tips for better coding
+
+---
+
+## 🚀 Complete Step-by-Step Tutorial
+
+### **Your First Analysis (3 Easy Steps)**
+
+**Step 1: Set Up Your API Key** (One-time only)
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Click "Create API Key" (it's FREE!)
+3. Copy the key
+4. In Tell-me, click **"Settings"** → paste your key → click **"Save API Key"**
+
+**Step 2: Write or Open Code**
+1. Create a new file (Ctrl+N)
+2. Write some C++ code, like:
+\`\`\`cpp
+#include <iostream>
+int main() {
+    std::cout << "Hello World!";
+    return 0;
+}
+\`\`\`
+3. **IMPORTANT:** Save the file as \`test.cpp\` (Ctrl+S)
+
+**Step 3: Run Analysis**
+1. Click the **"Compile & Run"** button
+2. Wait a few seconds
+3. Read the AI explanation below!
+
+---
+
+## 💡 Pro Tips for Best Results
+
+### ✅ DO:
+- **Always save your file first** (Ctrl+S)
+- Start with small programs while learning
+- Read the full explanation - Tell-me provides helpful context
+- Use tags to organize errors you encounter often
+- Ask follow-up questions if confused
+
+### ❌ DON'T:
+- Don't try to analyze unsaved files
+- Don't ignore the compiler output - Tell-me uses it to help you
+- Don't skip the examples - they show working code
+- Don't be afraid to ask "silly" questions - Tell-me never judges!
+
+---
+
+## 🎓 Learning Journey Example
+
+**Week 1:** 
+- Write simple programs
+- Use "Compile & Run" to check them
+- Tag errors like "syntax" and "semicolons"
+
+**Week 2:**
+- Try more complex programs
+- Use follow-up questions to understand concepts
+- Check your statistics to see improvement!
+
+**Week 3:**
+- Connect Google Sheets sync
+- View your progress charts
+- Celebrate how much you've learned! 🎉
+
+---
+
+## 🔑 Keyboard Shortcuts
+
+- **Ctrl+S** - Save file (always do this first!)
+- **Ctrl+Shift+P** - Open command palette (access all Tell-me commands)
+- Type "Tell-me" in command palette to see all available commands
+
+---
+
+## 📱 Where to Get Help
+
+1. **Immediate help:** Click Menu (☰) → **"Help"** for troubleshooting
+2. **Settings issues:** Click **"Settings"** button for configuration
+3. **Understanding errors:** Use the "Ask follow-up question" feature
+
+---
+
+## 🎯 Quick Action Checklist
+
+Ready to start? Here's your checklist:
+
+- [ ] Install gcc/g++ compiler (if not already installed)
+- [ ] Get free API key from Google AI Studio
+- [ ] Add API key to Tell-me settings
+- [ ] Create a .cpp file with some code
+- [ ] Save the file (Ctrl+S)
+- [ ] Click "Compile & Run"
+- [ ] Read the AI explanation
+- [ ] Try asking a follow-up question!
+
+---
+
+**You're all set!** Tell-me is here to help you become a better C/C++ programmer. Start coding and let the AI guide you! 🚀
+
+*Remember: Making errors is part of learning. Tell-me is here to help you understand them, not judge you!*`;
         this.update();
     }
 
@@ -401,6 +627,7 @@ export class DiagnosticsViewProvider implements vscode.WebviewViewProvider {
         this.isLoading = true;
         this.update();
 
+        const analysisStartTime = Date.now();
         const result = await this.compileAndRun(filePath);
         this.compilationResult = result;
         
@@ -480,6 +707,27 @@ Now analyze the code and provide:
             ];
 
             this.geminiOutput = this.formatConversation();
+
+            // Record analysis stats (non-blocking)
+            if (this.statsStore) {
+                const duration = Date.now() - analysisStartTime;
+                const hasErrors = result.includes('error:') || result.includes('❌');
+                const ext = path.extname(filePath).toLowerCase();
+                const language = ext === ".c" ? "c" : "cpp";
+                
+                this.statsStore.recordAnalysis({
+                    filePath,
+                    language,
+                    diagnosticCount: 1,
+                    resultType: hasErrors ? 'error' : 'success',
+                    tokenCount: this.lastTokenCount,
+                    durationMs: duration,
+                    model: settings.model
+                }).catch(err => {
+                    console.error('Failed to record analysis:', err);
+                    vscode.window.showErrorMessage(`Failed to save analysis stats: ${err.message}`, 'Dismiss');
+                });
+            }
         } catch (err: any) {
             if (err?.message?.includes('API key')) {
                 this.geminiOutput = "❌ Invalid API Key. Please check your Google Gemini API key in the settings.";
@@ -1021,6 +1269,73 @@ button:disabled {
     margin: 0 !important;
     cursor: pointer;
 }
+
+/* Dropdown Menu Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: var(--vscode-dropdown-background, var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.dropdown-content.show {
+    display: block;
+    animation: slideDown 0.15s ease-out;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: var(--text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-item span {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.dropdown-item:hover {
+    background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.1));
+}
+
+.dropdown-item:active {
+    background: var(--vscode-list-activeSelectionBackground, rgba(255, 255, 255, 0.15));
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
 </style>
 </head>
 
@@ -1031,12 +1346,39 @@ button:disabled {
         ${this.isLoading ? '<span class="loading"></span>' : '▶️'} 
         ${this.isLoading ? 'Analyzing...' : 'Compile & Run'}
     </button>
-    <button class="secondary" id="settings" title="Open Settings">
-        ⚙️ Settings
-    </button>
-    <button class="secondary" id="troubleshooting" title="Common Issues & Solutions">
-        🔧 Help
-    </button>
+    <div class="dropdown">
+        <button class="secondary dropdown-toggle" id="menuButton" title="More Options">
+            ☰ Menu
+        </button>
+        <div class="dropdown-content" id="dropdownMenu">
+            <button id="settings" class="dropdown-item">
+                <span>⚙️</span> Settings
+            </button>
+            <button id="featuresGuide" class="dropdown-item">
+                <span>📚</span> Features & How to Use
+            </button>
+            <button id="troubleshooting" class="dropdown-item">
+                <span>🔧</span> Help
+            </button>
+            <div class="dropdown-divider"></div>
+            <button id="tagManagement" class="dropdown-item">
+                <span>🏷️</span> Manage Tags
+            </button>
+            <button id="viewStats" class="dropdown-item">
+                <span>📊</span> Statistics
+            </button>
+            <button id="syncNow" class="dropdown-item">
+                <span>🔄</span> Sync to Sheets
+            </button>
+            <div class="dropdown-divider"></div>
+            <button id="exportData" class="dropdown-item">
+                <span>📤</span> Export Data
+            </button>
+            <button id="clearData" class="dropdown-item">
+                <span>🗑️</span> Clear All Data
+            </button>
+        </div>
+    </div>
 </div>
 
 ${this.settingsDrawerOpen ? `
@@ -1258,12 +1600,61 @@ document.getElementById("run")?.addEventListener("click", () => {
     vscode.postMessage({ command: "runCompiler" });
 });
 
+// Dropdown menu handling
+const menuButton = document.getElementById("menuButton");
+const dropdownMenu = document.getElementById("dropdownMenu");
+
+menuButton?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdownMenu?.classList.toggle("show");
+});
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+    if (!menuButton?.contains(e.target) && !dropdownMenu?.contains(e.target)) {
+        dropdownMenu?.classList.remove("show");
+    }
+});
+
+// Dropdown menu items
 document.getElementById("settings")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
     vscode.postMessage({ command: "toggleDrawer" });
 });
 
+document.getElementById("featuresGuide")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "showFeaturesGuide" });
+});
+
 document.getElementById("troubleshooting")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
     vscode.postMessage({ command: "showTroubleshooting" });
+});
+
+document.getElementById("tagManagement")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "manageTagsCommand" });
+});
+
+document.getElementById("viewStats")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "showStatsCommand" });
+});
+
+document.getElementById("syncNow")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "syncSheetsCommand" });
+});
+
+document.getElementById("exportData")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "exportDataCommand" });
+});
+
+document.getElementById("clearData")?.addEventListener("click", () => {
+    dropdownMenu?.classList.remove("show");
+    vscode.postMessage({ command: "clearDataCommand" });
 });
 
 document.getElementById("openFullSettings")?.addEventListener("click", () => {

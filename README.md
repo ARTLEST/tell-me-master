@@ -33,21 +33,92 @@ An educational VS Code extension that uses Google Gemini AI to help you understa
 
 - **GCC** or **G++** compiler installed on your system
 - **Google Gemini API key** (free at [Google AI Studio](https://aistudio.google.com/app/apikey))
+- **VS Code 1.107.0+** for full feature support
+- **Internet** (optional - only for Google Sheets sync and AI features)
 
-### Installing GCC/G++
+### Installing GCC/G++ (Multi-Platform)
 
 **Windows:**
 ```bash
-# Install MinGW or use WSL
+# Option 1: MinGW (Recommended)
+# Download from: https://sourceforge.net/projects/mingw-w64/
+# Add to PATH
+
+# Option 2: WSL (Windows Subsystem for Linux)
+wsl --install
+wsl
+sudo apt-get update && sudo apt-get install g++
 ```
 
 **macOS:**
 ```bash
+# Option 1: Command Line Tools
 xcode-select --install
+
+# Option 2: Via Homebrew
+brew install gcc
 ```
 
 **Linux:**
 ```bash
+# Ubuntu/Debian
+sudo apt-get update && sudo apt-get install g++
+
+# Fedora/RHEL
+sudo dnf install gcc-c++
+
+# Arch
+sudo pacman -S gcc
+```
+
+### Compiler Verification
+
+After installation, verify the compiler is in your PATH:
+```bash
+g++ --version    # or clang++ --version
+```
+
+---
+
+## 🌍 Cross-Environment Support
+
+Tell-me is designed to work seamlessly across **Windows, macOS, and Linux**. All features work on any platform:
+
+✅ **Tested & Working On:**
+- Windows 10/11 with MinGW
+- macOS 12+ (Intel & Apple Silicon)
+- Linux (Ubuntu 20.04+, Fedora, Arch, etc.)
+
+📊 See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for:
+- Multi-computer setup instructions
+- Platform-specific configurations
+- Troubleshooting guide
+- Performance benchmarks
+
+---
+
+## 🔧 Setup & Configuration
+
+### Quick Start
+```bash
+# Clone the repository
+git clone <repository-url>
+cd tell-me-master
+
+# Install dependencies
+npm install
+
+# Compile TypeScript to JavaScript
+npm run compile
+
+# Verify setup (optional)
+bash verify-setup.sh
+```
+
+### VS Code Setup
+1. Press `F5` to open extension in debug mode
+2. Or package for deployment: `vsce package`
+3. Or install directly: Extensions → Install from VSIX
 sudo apt install gcc g++  # Ubuntu/Debian
 sudo dnf install gcc g++  # Fedora
 ```
